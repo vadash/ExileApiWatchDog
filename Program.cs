@@ -12,6 +12,7 @@ namespace ExileApiWatchDog
     {
         private const string GAME_PROC_NAME = "PathOfExile_x64";
         private const string EXILE_API_PROC_NAME = "Loader";
+        private const string NO_OWNER = "NO_OWNER";
 
         [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -45,7 +46,9 @@ namespace ExileApiWatchDog
                         Console.Beep();
                     }
 
-                    if (game == null)
+                    if (game == null ||
+                        game.HasExited ||
+                        gameOwner == NO_OWNER)
                     {
                         game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
                         gameOwner = GetProcessOwner(game?.Id);
@@ -58,7 +61,9 @@ namespace ExileApiWatchDog
                         continue;
                     }
 
-                    if (hud == null)
+                    if (hud == null ||
+                        hud.HasExited ||
+                        hudOwner == NO_OWNER)
                     {
                         hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
                         hudOwner = GetProcessOwner(hud?.Id);
@@ -96,6 +101,7 @@ namespace ExileApiWatchDog
 
         private static string GetProcessOwner(int? processId)
         {
+            if (processId == null) return NO_OWNER;
             var query = @"Select * From Win32_Process Where ProcessID = " + processId;
             var searcher = new ManagementObjectSearcher(query);
             var processList = searcher.Get();
@@ -111,8 +117,8 @@ namespace ExileApiWatchDog
                     return argList[1] + "\\" + argList[0];
                 }
             }
-
-            return "NO OWNER";
+            
+            return NO_OWNER;
         }
     }
 }
