@@ -14,65 +14,75 @@ namespace ExileApiWatchDog
 
         public static void Main()
         {
-            Process game = null;
-            var gameOwner = "";
-            Process hud = null;
-            var hudOwner = "";
-
-            while (true)
+            using (new Mutex(
+                true,
+                "ExileApiWatchDog",
+                out var createdNew))
             {
-                if (game != null &&
-                    hud != null &&
-                    hudOwner == gameOwner)
-                {
-                    Console.WriteLine("ExileApi and PoE are running under same user. Please configure it correctly");
-                    Console.Beep();
-                }
+                if (!createdNew) return;
 
-                if (game == null)
-                {
-                    game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
-                    gameOwner = GetProcessOwner(game?.Id);
-                }
+                Process game = null;
+                var gameOwner = "";
+                Process hud = null;
+                var hudOwner = "";
 
-                if (game == null)
+                while (true)
                 {
-                    Console.WriteLine("Game is not running. Idling...");
-                    Thread.Sleep(5000);
-                    continue;
-                }
-
-                if (hud == null)
-                {
-                    hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
-                    hudOwner = GetProcessOwner(hud?.Id);
-                }
-                if (hud == null)
-                {
-                    var startInfo = new ProcessStartInfo
+                    if (game != null &&
+                        hud != null &&
+                        hudOwner == gameOwner)
                     {
-                        WorkingDirectory = Directory.GetCurrentDirectory(),
-                        FileName = EXILE_API_PROC_NAME + ".exe"
-                    };
-                    Console.WriteLine(
-                        $"Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
-                    try
-                    {
-                        Process.Start(startInfo);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                        Thread.Sleep(15000);
+                        Console.WriteLine(
+                            "ExileApi and PoE are running under same user. Please configure it correctly");
+                        Console.Beep();
                     }
 
-                    Thread.Sleep(5000);
-                }
+                    if (game == null)
+                    {
+                        game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
+                        gameOwner = GetProcessOwner(game?.Id);
+                    }
 
-                Console.WriteLine($"All good hud owner [{hudOwner}] != game owner [{gameOwner}]. Idling...");
-                Thread.Sleep(500);
+                    if (game == null)
+                    {
+                        Console.WriteLine("Game is not running. Idling...");
+                        Thread.Sleep(5000);
+                        continue;
+                    }
+
+                    if (hud == null)
+                    {
+                        hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
+                        hudOwner = GetProcessOwner(hud?.Id);
+                    }
+
+                    if (hud == null)
+                    {
+                        var startInfo = new ProcessStartInfo
+                        {
+                            WorkingDirectory = Directory.GetCurrentDirectory(),
+                            FileName = EXILE_API_PROC_NAME + ".exe"
+                        };
+                        Console.WriteLine(
+                            $"Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
+                        try
+                        {
+                            Process.Start(startInfo);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            Thread.Sleep(15000);
+                        }
+
+                        Thread.Sleep(5000);
+                    }
+
+                    Console.WriteLine($"All good hud owner [{hudOwner}] != game owner [{gameOwner}]. Idling...");
+                    Thread.Sleep(500);
+                }
             }
-            
+
             // ReSharper disable once FunctionNeverReturns
         }
 
