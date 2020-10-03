@@ -69,9 +69,11 @@ namespace ExileApiWatchDog
                     Thread.Sleep(5000);
                 }
 
-                Console.WriteLine("All good. Idling...");
+                Console.WriteLine($"All good hud owner [{hudOwner}] != game owner [{gameOwner}]. Idling...");
                 Thread.Sleep(500);
             }
+            
+            // ReSharper disable once FunctionNeverReturns
         }
 
         private static string GetProcessOwner(int? processId)
