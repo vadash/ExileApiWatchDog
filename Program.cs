@@ -3,15 +3,20 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace ExileApiWatchDog
 {
-    internal class Program
+    internal static class Program
     {
         private const string GAME_PROC_NAME = "PathOfExile_x64";
         private const string EXILE_API_PROC_NAME = "Loader";
 
+        [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow([In] IntPtr hWnd, [In] int nCmdShow);
+        
         public static void Main()
         {
             using (new Mutex(
@@ -21,6 +26,9 @@ namespace ExileApiWatchDog
             {
                 if (!createdNew) return;
 
+                // Hide process
+                ShowWindow(Process.GetCurrentProcess().MainWindowHandle, 6);
+                
                 Process game = null;
                 var gameOwner = "";
                 Process hud = null;
@@ -95,7 +103,7 @@ namespace ExileApiWatchDog
             foreach (var o in processList)
             {
                 var obj = (ManagementObject) o;
-                var argList = new[] { string.Empty, string.Empty };
+                object[] argList = { string.Empty, string.Empty };
                 var returnVal = Convert.ToInt32(obj.InvokeMethod("GetOwner", argList));
                 if (returnVal == 0)
                 {
