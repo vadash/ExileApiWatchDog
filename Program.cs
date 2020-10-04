@@ -57,14 +57,14 @@ namespace ExileApiWatchDog
                 var gameOwner = "";
                 var hudOwner = "";
 
-                while (true)
+                for (var i = 0; ; i++)
                 {
                     if (game != null &&
                         _hud != null &&
                         hudOwner == gameOwner)
                     {
                         Console.WriteLine(
-                            "ExileApi and PoE are running under same user. Please configure it correctly");
+                            $"{i:X7} ExileApi and PoE are running under same user. Please configure it correctly");
                         Console.Beep();
                     }
 
@@ -78,7 +78,7 @@ namespace ExileApiWatchDog
 
                     if (game == null)
                     {
-                        Console.WriteLine("Game is not running. Idling...");
+                        Console.WriteLine($"{i:X7} Game is not running. Idling...");
                         Thread.Sleep(5000);
                         continue;
                     }
@@ -99,7 +99,7 @@ namespace ExileApiWatchDog
                             FileName = EXILE_API_PROC_NAME + ".exe"
                         };
                         Console.WriteLine(
-                            $"Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
+                            $"{i:X7} Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
                         try
                         {
                             Process.Start(startInfo);
@@ -113,7 +113,7 @@ namespace ExileApiWatchDog
                         Thread.Sleep(5000);
                     }
 
-                    Console.WriteLine($"All good hud owner [{hudOwner}] != game owner [{gameOwner}]. Idling...");
+                    Console.WriteLine($"{i:X7} All good hud owner [{hudOwner}] != game owner [{gameOwner}]. Idling...");
                     Thread.Sleep(500);
                 }
             }
