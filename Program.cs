@@ -5,6 +5,7 @@ using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Threading;
+// ReSharper disable InconsistentNaming
 
 namespace ExileApiWatchDog
 {
@@ -13,11 +14,30 @@ namespace ExileApiWatchDog
         private const string GAME_PROC_NAME = "PathOfExile_x64";
         private const string EXILE_API_PROC_NAME = "Loader";
         private const string NO_OWNER = "NO_OWNER";
+        private static Process _hud;
+
+        #region WINAPI
 
         [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool ShowWindow([In] IntPtr hWnd, [In] int nCmdShow);
         
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(HandlerRoutine handler, bool add);
+
+        private delegate bool HandlerRoutine(ControlTypes CtrlType);
+        
+        public enum ControlTypes
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT,
+            CTRL_CLOSE_EVENT,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT
+        }
+
+        #endregion
+       
         public static void Main()
         {
             using (new Mutex(
@@ -27,18 +47,20 @@ namespace ExileApiWatchDog
             {
                 if (!createdNew) return;
 
-                // Hide process
+                // Set event OnFormClose
+                SetConsoleCtrlHandler(OnFormClose, true);
+                
+                // Minimize process
                 ShowWindow(Process.GetCurrentProcess().MainWindowHandle, 6);
                 
                 Process game = null;
                 var gameOwner = "";
-                Process hud = null;
                 var hudOwner = "";
 
                 while (true)
                 {
                     if (game != null &&
-                        hud != null &&
+                        _hud != null &&
                         hudOwner == gameOwner)
                     {
                         Console.WriteLine(
@@ -61,15 +83,15 @@ namespace ExileApiWatchDog
                         continue;
                     }
 
-                    if (hud == null ||
-                        hud.HasExited ||
+                    if (_hud == null ||
+                        _hud.HasExited ||
                         hudOwner == NO_OWNER)
                     {
-                        hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
-                        hudOwner = GetProcessOwner(hud?.Id);
+                        _hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
+                        hudOwner = GetProcessOwner(_hud?.Id);
                     }
 
-                    if (hud == null)
+                    if (_hud == null)
                     {
                         var startInfo = new ProcessStartInfo
                         {
@@ -99,6 +121,13 @@ namespace ExileApiWatchDog
             // ReSharper disable once FunctionNeverReturns
         }
 
+        private static bool OnFormClose(ControlTypes ctrlType)
+        {
+            _hud.CloseMainWindow();
+            _hud.Close();
+            return true;
+        }
+        
         private static string GetProcessOwner(int? processId)
         {
             if (processId == null) return NO_OWNER;
