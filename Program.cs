@@ -15,6 +15,9 @@ namespace ExileApiWatchDog
         private const string EXILE_API_PROC_NAME = "Loader";
         private const string NO_OWNER = "NO_OWNER";
         private static Process _hud;
+        private static Process _game;
+        private static string _gameOwner = "";
+        private static string _hudOwner = "";
 
         #region WINAPI
 
@@ -53,72 +56,80 @@ namespace ExileApiWatchDog
                 // Minimize process
                 ShowWindow(Process.GetCurrentProcess().MainWindowHandle, 6);
                 
-                Process game = null;
-                var gameOwner = "";
-                var hudOwner = "";
-
                 for (var i = 0; ; i++)
                 {
-                    if (game != null &&
-                        _hud != null &&
-                        hudOwner == gameOwner)
+                    try
                     {
-                        Console.WriteLine(
-                            $"{i:X7} ExileApi and PoE are running under same user. Please configure it correctly");
-                        Console.Beep();
+                        CheckExileApi(i);
                     }
-
-                    if (game == null ||
-                        game.HasExited ||
-                        gameOwner == NO_OWNER)
+                    catch
                     {
-                        game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
-                        gameOwner = GetProcessOwner(game?.Id);
+                        // ignored
                     }
-
-                    if (game == null)
-                    {
-                        Console.WriteLine($"{i:X7} Game is not running. Idling...");
-                        Thread.Sleep(5000);
-                        continue;
-                    }
-
-                    if (_hud == null ||
-                        _hud.HasExited ||
-                        hudOwner == NO_OWNER)
-                    {
-                        _hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
-                        hudOwner = GetProcessOwner(_hud?.Id);
-                    }
-
-                    if (_hud == null)
-                    {
-                        var startInfo = new ProcessStartInfo
-                        {
-                            WorkingDirectory = Directory.GetCurrentDirectory(),
-                            FileName = EXILE_API_PROC_NAME + ".exe"
-                        };
-                        Console.WriteLine(
-                            $"{i:X7} Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
-                        try
-                        {
-                            Process.Start(startInfo);
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                            Thread.Sleep(15000);
-                        }
-
-                        Thread.Sleep(5000);
-                    }
-
-                    Console.WriteLine($"{i:X7} All good hud owner [{hudOwner}] != game owner [{gameOwner}]. Idling...");
-                    Thread.Sleep(500);
                 }
             }
 
             // ReSharper disable once FunctionNeverReturns
+        }
+
+        private static void CheckExileApi(int counter)
+        {
+            if (_game != null &&
+                _hud != null &&
+                _hudOwner == _gameOwner)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} ExileApi and PoE are running under same user. Please configure it correctly");
+                Console.Beep();
+            }
+
+            if (_game == null ||
+                _game.HasExited ||
+                _gameOwner == NO_OWNER)
+            {
+                _game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
+                _gameOwner = GetProcessOwner(_game?.Id);
+            }
+
+            if (_game == null)
+            {
+                Console.WriteLine($"{counter:X7} Game is not running. Idling...");
+                Thread.Sleep(5000);
+                return;
+            }
+
+            if (_hud == null ||
+                _hud.HasExited ||
+                _hudOwner == NO_OWNER)
+            {
+                _hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
+                _hudOwner = GetProcessOwner(_hud?.Id);
+            }
+
+            if (_hud == null)
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    WorkingDirectory = Directory.GetCurrentDirectory(),
+                    FileName = EXILE_API_PROC_NAME + ".exe"
+                };
+                Console.WriteLine(
+                    $"{counter:X7} Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
+                try
+                {
+                    Process.Start(startInfo);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    Thread.Sleep(15000);
+                }
+
+                Thread.Sleep(5000);
+            }
+
+            Console.WriteLine($"{counter:X7} All good hud owner [{_hudOwner}] != game owner [{_gameOwner}]. Idling...");
+            Thread.Sleep(500);
         }
 
         private static bool OnFormClose(ControlTypes ctrlType)
