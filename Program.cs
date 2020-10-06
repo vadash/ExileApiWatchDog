@@ -18,6 +18,7 @@ namespace ExileApiWatchDog
         private static Process _game;
         private static string _gameOwner = "";
         private static string _hudOwner = "";
+        private static readonly Stopwatch _hudUnresponsive = new Stopwatch();
 
         #region WINAPI
 
@@ -74,13 +75,26 @@ namespace ExileApiWatchDog
 
         private static void CheckExileApi(int counter)
         {
+            if (_hud?.Responding == true)
+                _hudUnresponsive?.Reset();
+            else if (_hud?.Responding == false) 
+                _hudUnresponsive?.Start();
+
+            if (_hud != null &&
+                _hudUnresponsive?.ElapsedMilliseconds > 5000)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} ExileApi is frozen. Restarting");
+                CloseExileApi();
+            }
+            
             if (_game != null &&
                 _hud != null &&
                 _hudOwner == _gameOwner)
             {
                 Console.WriteLine(
                     $"{counter:X7} ExileApi and PoE are running under same user. Please configure it correctly");
-                Console.Beep();
+                CloseExileApi();
             }
 
             if (_game == null ||
@@ -134,6 +148,12 @@ namespace ExileApiWatchDog
 
         private static bool OnFormClose(ControlTypes ctrlType)
         {
+            return CloseExileApi();
+        }
+
+        private static bool CloseExileApi()
+        {
+            Console.Beep();
             _hud.CloseMainWindow();
             _hud.Close();
             return true;
