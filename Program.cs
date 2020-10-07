@@ -155,8 +155,8 @@ namespace ExileApiWatchDog
         {
             _hudUnresponsive.Reset();
             Console.Beep();
-            _hud.CloseMainWindow();
-            _hud.Close();
+            _hud.Kill();
+            _hud = null;
             return true;
         }
         
