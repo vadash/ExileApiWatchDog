@@ -81,7 +81,7 @@ namespace ExileApiWatchDog
                 _hudUnresponsive?.Start();
 
             if (_hud != null &&
-                _hudUnresponsive?.ElapsedMilliseconds > 5000)
+                _hudUnresponsive?.ElapsedMilliseconds > 60000)
             {
                 Console.WriteLine(
                     $"{counter:X7} ExileApi is frozen. Restarting");
