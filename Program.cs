@@ -153,6 +153,7 @@ namespace ExileApiWatchDog
 
         private static bool CloseExileApi()
         {
+            _hudUnresponsive.Reset();
             Console.Beep();
             _hud.CloseMainWindow();
             _hud.Close();
