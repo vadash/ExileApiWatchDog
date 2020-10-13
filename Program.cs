@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Net.Mime;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 // ReSharper disable InconsistentNaming
@@ -44,6 +46,7 @@ namespace ExileApiWatchDog
        
         public static void Main()
         {
+            Console.WriteLine($"ExileApiWatchDog v{Assembly.GetExecutingAssembly().GetName().Version}");
             using (new Mutex(
                 true,
                 "ExileApiWatchDog",
@@ -63,9 +66,9 @@ namespace ExileApiWatchDog
                     {
                         CheckExileApi(i);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+                        Console.WriteLine(e);
                     }
                 }
             }
@@ -153,10 +156,17 @@ namespace ExileApiWatchDog
 
         private static bool CloseExileApi()
         {
-            _hudUnresponsive.Reset();
-            Console.Beep();
-            _hud.Kill();
-            _hud = null;
+            try
+            {
+                _hudUnresponsive?.Reset();
+                Console.Beep();
+                _hud?.Kill();
+                _hud = null;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
             return true;
         }
         
