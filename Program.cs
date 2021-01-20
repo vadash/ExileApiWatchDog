@@ -170,6 +170,12 @@ namespace ExileApiWatchDog
                     $"{counter:X7} PoE is frozen. Restarting");
                 ClosePoe();
                 Thread.Sleep(5000);
+            }
+            
+            if (_game == null)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} Starting PoE");
                 StartPoe(counter);
             }
             
