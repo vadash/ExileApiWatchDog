@@ -93,38 +93,49 @@ namespace ExileApiWatchDog
 
         private static void CheckExileApi(int counter)
         {
-            if (_hud?.Responding == true)
-                _hudUnresponsive?.Reset();
-            else if (_hud?.Responding == false) 
-                _hudUnresponsive?.Start();
+            // Update _hudUnresponsive timer
+            try
+            {
+                if (_hud?.Responding == true)
+                    _hudUnresponsive?.Reset();
+                else if (_hud?.Responding == false) 
+                    _hudUnresponsive?.Start();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} {e}");
+            }
 
+            // Frozen check
             if (_hud != null &&
                 _hudUnresponsive?.ElapsedMilliseconds > 60000)
             {
                 Console.WriteLine(
-                    $"{counter:X7} ExileApi is frozen. Restarting");
+                    $"{counter:X7} ExileApi is frozen. Killing it");
                 CloseExileApi();
             }
             
-            if (_game == null)
-            {
-                Console.WriteLine($"{counter:X7} Game is not running. Idling...");
-                Thread.Sleep(5000);
-                return;
-            }
-            
             // Update _hudOwner
-            if (_hud == null ||
-                _hud.HasExited ||
-                _hudOwner == NO_OWNER)
+            try
             {
-                _hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
-                _hudOwner = GetProcessOwner(_hud?.Id);
+                if (_hud == null ||
+                    _hud?.HasExited == true ||
+                    _hudOwner == NO_OWNER)
+                {
+                    _hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
+                    _hudOwner = GetProcessOwner(_hud?.Id);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} {e}");
             }
 
             // Auto start HUD
-            if (_hud == null && // hud is not started
-                _gameUnresponsive?.ElapsedMilliseconds == 0) // and game is responsive
+            if (_game?.Responding == true && // game is started
+                _hud == null) // hud is not started
             {
                 var startInfo = new ProcessStartInfo
                 {
@@ -135,7 +146,7 @@ namespace ExileApiWatchDog
                     $"{counter:X7} Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
                 try
                 {
-                    Process.Start(startInfo);
+                    _hud = Process.Start(startInfo);
                 }
                 catch (Exception e)
                 {
@@ -151,11 +162,21 @@ namespace ExileApiWatchDog
 
         private static void CheckGame(int counter)
         {
-            if (_game?.Responding == true)
-                _gameUnresponsive?.Reset();
-            else if (_game?.Responding == false) 
-                _gameUnresponsive?.Start();
+            // Update _gameUnresponsive timer
+            try
+            {
+                if (_game?.Responding == true)
+                    _gameUnresponsive?.Reset();
+                else if (_game?.Responding == false) 
+                    _gameUnresponsive?.Start();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} {e}");
+            }
 
+            // Frozen check
             if (_game != null &&
                 _gameUnresponsive?.ElapsedMilliseconds > 0)
             {
@@ -163,15 +184,20 @@ namespace ExileApiWatchDog
                     $"{counter:X7} PoE is frozen {_gameUnresponsive?.ElapsedMilliseconds} ms");
             }
             
+            // Frozen check 
             if (_game != null &&
                 _gameUnresponsive?.ElapsedMilliseconds > 60000)
             {
                 Console.WriteLine(
-                    $"{counter:X7} PoE is frozen. Restarting");
+                    $"{counter:X7} PoE is frozen. Killing it");
                 ClosePoe();
+                Console.WriteLine(
+                    $"{counter:X7} and ExileApi");
+                CloseExileApi();
                 Thread.Sleep(5000);
             }
             
+            // Starting PoE
             if (_game == null)
             {
                 Console.WriteLine(
@@ -181,7 +207,7 @@ namespace ExileApiWatchDog
             
             // Update _gameOwner
             if (_game == null ||
-                _game.HasExited ||
+                _game?.HasExited == true ||
                 _gameOwner == NO_OWNER)
             {
                 _game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
@@ -231,7 +257,9 @@ namespace ExileApiWatchDog
                 $"{counter:X7} Starting Path of Exile under limited user");
             try
             {
-                Process.Start("StartPathOfExile.cmd");
+                _game = Process.Start("StartPathOfExile.cmd");
+                Thread.Sleep(1000);
+                _gameOwner = NO_OWNER;
             }
             catch (Exception e)
             {

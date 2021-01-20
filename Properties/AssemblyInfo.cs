@@ -7,4 +7,4 @@
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: AssemblyVersion("3")]
+[assembly: AssemblyVersion("4")]
