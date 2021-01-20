@@ -21,6 +21,7 @@ namespace ExileApiWatchDog
         private static string _gameOwner = "";
         private static string _hudOwner = "";
         private static readonly Stopwatch _hudUnresponsive = new Stopwatch();
+        private static readonly Stopwatch _gameUnresponsive = new Stopwatch();
 
         #region WINAPI
 
@@ -65,6 +66,8 @@ namespace ExileApiWatchDog
                     try
                     {
                         CheckExileApi(i);
+                        CheckGame(i);
+                        CheckLimitedUser(i);
                     }
                     catch (Exception e)
                     {
@@ -74,6 +77,18 @@ namespace ExileApiWatchDog
             }
 
             // ReSharper disable once FunctionNeverReturns
+        }
+
+        private static void CheckLimitedUser(int counter)
+        {
+            if (_game != null &&
+                _hud != null &&
+                _hudOwner == _gameOwner)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} ExileApi and PoE are running under same user. Please configure it correctly");
+                CloseExileApi();
+            }
         }
 
         private static void CheckExileApi(int counter)
@@ -91,30 +106,14 @@ namespace ExileApiWatchDog
                 CloseExileApi();
             }
             
-            if (_game != null &&
-                _hud != null &&
-                _hudOwner == _gameOwner)
-            {
-                Console.WriteLine(
-                    $"{counter:X7} ExileApi and PoE are running under same user. Please configure it correctly");
-                CloseExileApi();
-            }
-
-            if (_game == null ||
-                _game.HasExited ||
-                _gameOwner == NO_OWNER)
-            {
-                _game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
-                _gameOwner = GetProcessOwner(_game?.Id);
-            }
-
             if (_game == null)
             {
                 Console.WriteLine($"{counter:X7} Game is not running. Idling...");
                 Thread.Sleep(5000);
                 return;
             }
-
+            
+            // Update _hudOwner
             if (_hud == null ||
                 _hud.HasExited ||
                 _hudOwner == NO_OWNER)
@@ -123,7 +122,9 @@ namespace ExileApiWatchDog
                 _hudOwner = GetProcessOwner(_hud?.Id);
             }
 
-            if (_hud == null)
+            // Auto start HUD
+            if (_hud == null && // hud is not started
+                _gameUnresponsive?.ElapsedMilliseconds == 0) // and game is responsive
             {
                 var startInfo = new ProcessStartInfo
                 {
@@ -144,9 +145,42 @@ namespace ExileApiWatchDog
 
                 Thread.Sleep(5000);
             }
-
-            Console.WriteLine($"{counter:X7} All good hud owner [{_hudOwner}] != game owner [{_gameOwner}]. Idling...");
+            
             Thread.Sleep(500);
+        }
+
+        private static void CheckGame(int counter)
+        {
+            if (_game?.Responding == true)
+                _gameUnresponsive?.Reset();
+            else if (_game?.Responding == false) 
+                _gameUnresponsive?.Start();
+
+            if (_game != null &&
+                _gameUnresponsive?.ElapsedMilliseconds > 0)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} PoE is frozen {_gameUnresponsive?.ElapsedMilliseconds} ms");
+            }
+            
+            if (_game != null &&
+                _gameUnresponsive?.ElapsedMilliseconds > 60000)
+            {
+                Console.WriteLine(
+                    $"{counter:X7} PoE is frozen. Restarting");
+                ClosePoe();
+                Thread.Sleep(5000);
+                StartPoe(counter);
+            }
+            
+            // Update _gameOwner
+            if (_game == null ||
+                _game.HasExited ||
+                _gameOwner == NO_OWNER)
+            {
+                _game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
+                _gameOwner = GetProcessOwner(_game?.Id);
+            }
         }
 
         private static bool OnFormClose(ControlTypes ctrlType)
@@ -168,6 +202,36 @@ namespace ExileApiWatchDog
                 Console.WriteLine(e);
             }
             return true;
+        }
+        
+        private static void ClosePoe()
+        {
+            try
+            {
+                _gameUnresponsive?.Reset();
+                Console.Beep();
+                _game?.Kill();
+                _game = null;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+        
+        private static void StartPoe(int counter)
+        {
+            Console.WriteLine(
+                $"{counter:X7} Starting Path of Exile under limited user");
+            try
+            {
+                Process.Start("StartPathOfExile.cmd");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Thread.Sleep(15000);
+            }
         }
         
         private static string GetProcessOwner(int? processId)
