@@ -7,8 +7,11 @@ using System.Net.Mime;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Windows.Forms;
+
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMethodReturnValue.Local
+// ReSharper disable PossibleMultipleEnumeration
 
 namespace ExileApiWatchDog
 {
@@ -26,6 +29,10 @@ namespace ExileApiWatchDog
 
         #region WINAPI
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool SetForegroundWindow(IntPtr hWnd);
+        
         [DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool ShowWindow([In] IntPtr hWnd, [In] int nCmdShow);
@@ -148,7 +155,24 @@ namespace ExileApiWatchDog
 
             StartPoe(counter);
 
+            CloseAppError();
+
             Thread.Sleep(500);
+        }
+
+        private static void CloseAppError()
+        {
+            var procs = Process
+                .GetProcesses()
+                .Where(pr =>
+                    pr.MainWindowTitle.Contains("PathOfExile") &&
+                    pr.MainWindowTitle.Contains("Error"));
+            if (procs.Any())
+            {
+                SetForegroundWindow(procs.First().MainWindowHandle);
+                Thread.Sleep(1000);
+                SendKeys.SendWait("{Enter}");
+            }
         }
 
         private static bool OnFormClose(ControlTypes ctrlType)
