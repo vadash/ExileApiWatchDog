@@ -178,8 +178,11 @@ namespace ExileApiWatchDog
             var procs = Process
                 .GetProcesses()
                 .Where(pr =>
-                    pr.MainWindowTitle.Contains("PathOfExile") &&
-                    pr.MainWindowTitle.Contains("Error"));
+                    pr.MainWindowTitle.ToLower().Contains("pathofexile") ||
+                    pr.MainWindowTitle.ToLower().Contains("exileapi"))
+                .Where(pr =>
+                    pr.MainWindowTitle.ToLower().Contains("ошибка") ||
+                    pr.MainWindowTitle.ToLower().Contains("error"));
             if (procs.Any())
             {
                 SetForegroundWindow(procs.First().MainWindowHandle);
