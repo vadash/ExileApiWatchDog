@@ -175,14 +175,19 @@ namespace ExileApiWatchDog
 
         private static void CloseAppError()
         {
-            var procs = Process
-                .GetProcesses()
+            var allProc = Process.GetProcesses();
+            var procs1 = allProc
                 .Where(pr =>
                     pr.MainWindowTitle.ToLower().Contains("pathofexile") ||
                     pr.MainWindowTitle.ToLower().Contains("exileapi"))
                 .Where(pr =>
                     pr.MainWindowTitle.ToLower().Contains("ошибка") ||
                     pr.MainWindowTitle.ToLower().Contains("error"));
+            // Not enough memory resources are available to complete this operation
+            var procs2 = allProc
+                .Where(pr =>
+                    pr.MainWindowTitle.ToLower().Contains("exception"));
+            var procs = procs1.Concat(procs2);
             if (procs.Any())
             {
                 SetForegroundWindow(procs.First().MainWindowHandle);
