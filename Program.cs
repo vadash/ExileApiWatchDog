@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
-using System.Net.Mime;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -17,6 +16,9 @@ namespace ExileApiWatchDog
 {
     internal static class Program
     {
+        private const int POE_TIMEOUT_MS = 45000;
+        private const int HUD_TIMEOUT_MS = 45000;
+
         private const string GAME_PROC_NAME = "PathOfExile_x64";
         private const string EXILE_API_PROC_NAME = "Loader";
         private const string NO_OWNER = "NO_OWNER";
@@ -123,10 +125,16 @@ namespace ExileApiWatchDog
 
                 // Frozen check
                 if (_hud != null &&
-                    _hudUnresponsive?.ElapsedMilliseconds > 60000)
+                    _hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS / 5)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} ExileApi is frozen. Killing it");
+                        $"{counter:X7} HUD is frozen for {_hudUnresponsive?.ElapsedMilliseconds} ms");
+                }
+                if (_hud != null &&
+                    _hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS)
+                {
+                    Console.WriteLine(
+                        $"{counter:X7} ExileApi is frozen for over {HUD_TIMEOUT_MS} MS. Killing it");
                     CloseExileApi();
                     Console.WriteLine($"{counter:X7} Sleeping for 10 seconds");
                     Thread.Sleep(10000);
@@ -152,19 +160,19 @@ namespace ExileApiWatchDog
                     _gameUnresponsive?.Start();
 
                 // Frozen check
-                if (_gameUnresponsive?.ElapsedMilliseconds > 3000)
+                if (_game != null &&
+                    _gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS / 5)
                 {
                     Console.WriteLine(
                         $"{counter:X7} PoE is frozen {_gameUnresponsive?.ElapsedMilliseconds} ms");
                 }
-                if (_gameUnresponsive?.ElapsedMilliseconds > 60000)
+                if (_game != null &&
+                    _gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} PoE is frozen for over 60 seconds. Killing ExileApi");
-                    CloseExileApi();
-                    Console.WriteLine(
-                        $"{counter:X7} and PoE");
+                        $"{counter:X7} PoE is frozen for over {POE_TIMEOUT_MS} ms. Killing ExileApi and PoE");
                     ClosePoe();
+                    CloseExileApi();
                     Console.WriteLine($"{counter:X7} Sleeping for 10 seconds");
                     Thread.Sleep(10000);
                 }
