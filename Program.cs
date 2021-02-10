@@ -190,11 +190,11 @@ namespace ExileApiWatchDog
                     Thread.Sleep(10000);
                 }
 
-                CloseAppError();
+                CloseAppError(counter);
             }
         }
 
-        private static void CloseAppError()
+        private static void CloseAppError(int counter)
         {
             var allProc = Process.GetProcesses();
             var procs1 = allProc
@@ -211,8 +211,13 @@ namespace ExileApiWatchDog
             var procs = procs1.Concat(procs2);
             if (procs.Any())
             {
+                var proc = procs.First();
+                Console.WriteLine(
+                    $"{counter:X7} Closing error box " +
+                    "with title = " + proc.MainWindowTitle +
+                    " and proc name = " + proc.ProcessName);
                 SetForegroundWindow(procs.First().MainWindowHandle);
-                Thread.Sleep(1000);
+                Thread.Sleep(5000);
                 SendKeys.SendWait("{Enter}");
             }
         }
