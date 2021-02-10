@@ -18,7 +18,7 @@ namespace ExileApiWatchDog
     {
         private const int POE_TIMEOUT_MS = 45000;
         private const int HUD_TIMEOUT_MS = 45000;
-        private const int HUD_MAX_RAM_ALLOWED_MB = 512;
+        private const int HUD_MAX_RAM_ALLOWED_MB = 768;
 
         private const string GAME_PROC_NAME = "PathOfExile_x64";
         private const string EXILE_API_PROC_NAME = "Loader";
@@ -173,14 +173,12 @@ namespace ExileApiWatchDog
                     _gameUnresponsive?.Start();
 
                 // Frozen check
-                if (_game != null &&
-                    _gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS / 5)
+                if (_gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS / 5)
                 {
                     Console.WriteLine(
                         $"{counter:X7} PoE is frozen {_gameUnresponsive?.ElapsedMilliseconds} ms");
                 }
-                if (_game != null &&
-                    _gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS)
+                if (_gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS)
                 {
                     Console.WriteLine(
                         $"{counter:X7} PoE is frozen for over {POE_TIMEOUT_MS} ms. Killing ExileApi and PoE");
