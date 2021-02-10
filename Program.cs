@@ -18,6 +18,7 @@ namespace ExileApiWatchDog
     {
         private const int POE_TIMEOUT_MS = 45000;
         private const int HUD_TIMEOUT_MS = 45000;
+        private const int HUD_MAX_RAM_ALLOWED_MB = 512;
 
         private const string GAME_PROC_NAME = "PathOfExile_x64";
         private const string EXILE_API_PROC_NAME = "Loader";
@@ -123,21 +124,33 @@ namespace ExileApiWatchDog
                 else if (_hud?.Responding == false) 
                     _hudUnresponsive?.Start();
 
+                // Memory leak check
+                var ram = _hud.WorkingSet64 / 1024f / 1024f;
+                if (ram > HUD_MAX_RAM_ALLOWED_MB / 2f)
+                {
+                    Console.WriteLine(
+                        $"{counter:X7} ExileApi consumed {ram} MB. Memory leak ?");
+                }
+                if (ram > HUD_MAX_RAM_ALLOWED_MB)
+                {
+                    Console.WriteLine(
+                        $"{counter:X7} Detected memory leak in ExileApi");
+                    CloseExileApi();
+                    Thread.Sleep(1000);
+                }
+                
                 // Frozen check
-                if (_hud != null &&
-                    _hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS / 5)
+                if (_hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS / 5)
                 {
                     Console.WriteLine(
                         $"{counter:X7} HUD is frozen for {_hudUnresponsive?.ElapsedMilliseconds} ms");
                 }
-                if (_hud != null &&
-                    _hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS)
+                if (_hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS)
                 {
                     Console.WriteLine(
                         $"{counter:X7} ExileApi is frozen for over {HUD_TIMEOUT_MS} MS. Killing it");
                     CloseExileApi();
-                    Console.WriteLine($"{counter:X7} Sleeping for 10 seconds");
-                    Thread.Sleep(10000);
+                    Thread.Sleep(1000);
                 }
             }
         }
