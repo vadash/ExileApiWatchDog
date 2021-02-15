@@ -216,8 +216,8 @@ namespace ExileApiWatchDog
                 }
             }
 
-            var exception = exceptions.First();
-            if (exception != null)
+            var exception = exceptions.FirstOrDefault();
+            if (exception?.Id > 0)
             {
                 Console.WriteLine(
                     $"{counter:X7} Closing error box " +
