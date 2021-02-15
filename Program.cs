@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -194,27 +195,35 @@ namespace ExileApiWatchDog
 
         private static void CloseAppError(int counter)
         {
-            var allProc = Process.GetProcesses();
-            var procs1 = allProc
-                .Where(pr =>
-                    pr.MainWindowTitle.ToLower().Contains("pathofexile") ||
-                    pr.MainWindowTitle.ToLower().Contains("exileapi"))
-                .Where(pr =>
-                    pr.MainWindowTitle.ToLower().Contains("ошибка") ||
-                    pr.MainWindowTitle.ToLower().Contains("error"));
-            // Not enough memory resources are available to complete this operation
-            var procs2 = allProc
-                .Where(pr =>
-                    pr.MainWindowTitle.ToLower().Contains("exception"));
-            var procs = procs1.Concat(procs2);
-            if (procs.Any())
+            var exceptions = new List<Process>();
+            foreach (var process in Process.GetProcesses())
             {
-                var proc = procs.First();
+                var title = process.MainWindowTitle.ToLower();
+                if ((title.Contains("pathofexile") || title.Contains("exileapi")) &&
+                    (title.Contains("ошибка") || title.Contains("error")))
+                {
+                    exceptions.Add(process);
+                }
+                // Not enough memory resources are available to complete this operation
+                if (title.Contains("exception"))
+                {
+                    exceptions.Add(process);
+                }
+                // Guard page cannot be created
+                if (title.Contains("system error"))
+                {
+                    exceptions.Add(process);
+                }
+            }
+
+            var exception = exceptions.First();
+            if (exception != null)
+            {
                 Console.WriteLine(
                     $"{counter:X7} Closing error box " +
-                    "with title = " + proc.MainWindowTitle +
-                    " and proc name = " + proc.ProcessName);
-                SetForegroundWindow(procs.First().MainWindowHandle);
+                    "with title = " + exception.MainWindowTitle +
+                    " and proc name = " + exception.ProcessName);
+                SetForegroundWindow(exception.MainWindowHandle);
                 Thread.Sleep(5000);
                 SendKeys.SendWait("{Enter}");
             }
