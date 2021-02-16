@@ -45,8 +45,8 @@ namespace ExileApiWatchDog
         private static extern bool SetConsoleCtrlHandler(HandlerRoutine handler, bool add);
 
         private delegate bool HandlerRoutine(ControlTypes CtrlType);
-        
-        public enum ControlTypes
+
+        private enum ControlTypes
         {
             CTRL_C_EVENT = 0,
             CTRL_BREAK_EVENT,
@@ -73,13 +73,13 @@ namespace ExileApiWatchDog
                 // Minimize process
                 ShowWindow(Process.GetCurrentProcess().MainWindowHandle, 6);
                 
-                for (var i = 0; ; i++)
+                while (true)
                 {
                     try
                     {
-                        CheckGame(i);
-                        CheckExileApi(i);
-                        CheckLimitedUser(i);
+                        CheckGame();
+                        CheckExileApi();
+                        CheckLimitedUser();
                         Thread.Sleep(1000);
                     }
                     catch (Exception e)
@@ -92,7 +92,7 @@ namespace ExileApiWatchDog
             // ReSharper disable once FunctionNeverReturns
         }
 
-        private static void CheckLimitedUser(int counter)
+        private static void CheckLimitedUser()
         {
             if (_game != null &&
                 _hud != null &&
@@ -101,20 +101,20 @@ namespace ExileApiWatchDog
                 _hudOwner == _gameOwner)
             {
                 Console.WriteLine(
-                    $"{counter:X7} ExileApi and PoE are running under same user. Please configure it correctly");
+                    $"{DateTime.Now} ExileApi and PoE are running under same user. Please configure it correctly");
                 CloseExileApi();
-                Console.WriteLine($"{counter:X7} Sleeping for 10 seconds");
+                Console.WriteLine($"{DateTime.Now} Sleeping for 10 seconds");
                 Thread.Sleep(10000);
             }
         }
 
-        private static void CheckExileApi(int counter)
+        private static void CheckExileApi()
         {
             // Updating _hud
             _hud = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == EXILE_API_PROC_NAME);
             if (_hud == null)
             {
-                StartExileApi(counter);
+                StartExileApi();
             }
             else
             {
@@ -130,12 +130,12 @@ namespace ExileApiWatchDog
                 if (ram > HUD_MAX_RAM_ALLOWED_MB / 2f)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} ExileApi consumed {ram} MB. Memory leak ?");
+                        $"{DateTime.Now} ExileApi consumed {ram} MB. Memory leak ?");
                 }
                 if (ram > HUD_MAX_RAM_ALLOWED_MB)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} Detected memory leak in ExileApi");
+                        $"{DateTime.Now} Detected memory leak in ExileApi");
                     CloseExileApi();
                     Thread.Sleep(1000);
                 }
@@ -144,25 +144,25 @@ namespace ExileApiWatchDog
                 if (_hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS / 5)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} HUD is frozen for {_hudUnresponsive?.ElapsedMilliseconds} ms");
+                        $"{DateTime.Now} HUD is frozen for {_hudUnresponsive?.ElapsedMilliseconds} ms");
                 }
                 if (_hudUnresponsive?.ElapsedMilliseconds > HUD_TIMEOUT_MS)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} ExileApi is frozen for over {HUD_TIMEOUT_MS} MS. Killing it");
+                        $"{DateTime.Now} ExileApi is frozen for over {HUD_TIMEOUT_MS} MS. Killing it");
                     CloseExileApi();
                     Thread.Sleep(1000);
                 }
             }
         }
 
-        private static void CheckGame(int counter)
+        private static void CheckGame()
         {
             // Updating _game
             _game = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == GAME_PROC_NAME);
             if (_game == null)
             {
-                StartPoe(counter);
+                StartPoe();
             }
             else
             {
@@ -177,23 +177,23 @@ namespace ExileApiWatchDog
                 if (_gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS / 5)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} PoE is frozen {_gameUnresponsive?.ElapsedMilliseconds} ms");
+                        $"{DateTime.Now} PoE is frozen {_gameUnresponsive?.ElapsedMilliseconds} ms");
                 }
                 if (_gameUnresponsive?.ElapsedMilliseconds > POE_TIMEOUT_MS)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} PoE is frozen for over {POE_TIMEOUT_MS} ms. Killing ExileApi and PoE");
+                        $"{DateTime.Now} PoE is frozen for over {POE_TIMEOUT_MS} ms. Killing ExileApi and PoE");
                     ClosePoe();
                     CloseExileApi();
-                    Console.WriteLine($"{counter:X7} Sleeping for 10 seconds");
+                    Console.WriteLine($"{DateTime.Now} Sleeping for 10 seconds");
                     Thread.Sleep(10000);
                 }
 
-                CloseAppError(counter);
+                CloseAppError();
             }
         }
 
-        private static void CloseAppError(int counter)
+        private static void CloseAppError()
         {
             var exceptions = new List<Process>();
             foreach (var process in Process.GetProcesses())
@@ -220,7 +220,7 @@ namespace ExileApiWatchDog
             if (exception?.Id > 0)
             {
                 Console.WriteLine(
-                    $"{counter:X7} Closing error box " +
+                    $"{DateTime.Now} Closing error box " +
                     "with title = " + exception.MainWindowTitle +
                     " and proc name = " + exception.ProcessName);
                 SetForegroundWindow(exception.MainWindowHandle);
@@ -234,7 +234,7 @@ namespace ExileApiWatchDog
             return CloseExileApi();
         }
 
-        private static bool StartExileApi(int counter)
+        private static bool StartExileApi()
         {
             try
             {
@@ -250,9 +250,9 @@ namespace ExileApiWatchDog
                         FileName = EXILE_API_PROC_NAME + ".exe"
                     };
                     Console.WriteLine(
-                        $"{counter:X7} Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
+                        $"{DateTime.Now} Starting ExileApi process {startInfo.FileName} from {startInfo.WorkingDirectory} directory");
                     _hud = Process.Start(startInfo);
-                    Console.WriteLine($"{counter:X7} Sleeping for 10 seconds");
+                    Console.WriteLine($"{DateTime.Now} Sleeping for 10 seconds");
                     Thread.Sleep(10000);
                     _hudOwner = NO_OWNER;
                 }
@@ -271,6 +271,9 @@ namespace ExileApiWatchDog
             {
                 _hudUnresponsive?.Reset();
                 Console.Beep();
+                Process.Start("CMD.exe", "taskkill /im Loader.exe");
+                _hud?.CloseMainWindow();
+                Thread.Sleep(5000);
                 _hud?.Kill();
                 _hud = null;
             }
@@ -282,17 +285,17 @@ namespace ExileApiWatchDog
             return true;
         }
         
-        private static void StartPoe(int counter)
+        private static void StartPoe()
         {
             try
             {
                 if (_game == null)
                 {
                     Console.WriteLine(
-                        $"{counter:X7} Starting Path of Exile under limited user");
+                        $"{DateTime.Now} Starting Path of Exile under limited user");
                     CloseExileApi();
                     _game = Process.Start("StartPathOfExile.cmd");
-                    Console.WriteLine($"{counter:X7} Sleeping for 10 seconds");
+                    Console.WriteLine($"{DateTime.Now} Sleeping for 10 seconds");
                     Thread.Sleep(10000);
                     _gameOwner = NO_OWNER;
                 }
@@ -310,6 +313,9 @@ namespace ExileApiWatchDog
             {
                 _gameUnresponsive?.Reset();
                 Console.Beep();
+                Process.Start("CMD.exe", "taskkill /im PathOfExile_x64.exe");
+                _game?.CloseMainWindow();
+                Thread.Sleep(5000);
                 _game?.Kill();
                 _game = null;
             }
