@@ -271,7 +271,7 @@ namespace ExileApiWatchDog
             {
                 _hudUnresponsive?.Reset();
                 Console.Beep();
-                Process.Start("CMD.exe", "taskkill /im Loader.exe");
+                Process.Start("cmd.exe", "/c taskkill /im Loader.exe");
                 _hud?.CloseMainWindow();
                 Thread.Sleep(5000);
                 _hud?.Kill();
@@ -313,7 +313,7 @@ namespace ExileApiWatchDog
             {
                 _gameUnresponsive?.Reset();
                 Console.Beep();
-                Process.Start("CMD.exe", "taskkill /im PathOfExile_x64.exe");
+                Process.Start("cmd.exe", "/c taskkill /im PathOfExile_x64.exe");
                 _game?.CloseMainWindow();
                 Thread.Sleep(5000);
                 _game?.Kill();
