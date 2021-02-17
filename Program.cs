@@ -19,7 +19,7 @@ namespace ExileApiWatchDog
     {
         private const int POE_TIMEOUT_MS = 45000;
         private const int HUD_TIMEOUT_MS = 45000;
-        private const int HUD_MAX_RAM_ALLOWED_MB = 768;
+        private const int HUD_MAX_RAM_ALLOWED_MB = 512;
 
         private const string GAME_PROC_NAME = "PathOfExile_x64";
         private const string EXILE_API_PROC_NAME = "Loader";
@@ -30,6 +30,7 @@ namespace ExileApiWatchDog
         private static string _hudOwner = NO_OWNER;
         private static readonly Stopwatch _hudUnresponsive = new Stopwatch();
         private static readonly Stopwatch _gameUnresponsive = new Stopwatch();
+        private static readonly Stopwatch _lastMemoryPrinted = new Stopwatch();
 
         #region WINAPI
 
@@ -59,6 +60,7 @@ namespace ExileApiWatchDog
        
         public static void Main()
         {
+            _lastMemoryPrinted.Start();
             Console.WriteLine($"ExileApiWatchDog v{Assembly.GetExecutingAssembly().GetName().Version}");
             using (new Mutex(
                 true,
@@ -126,18 +128,29 @@ namespace ExileApiWatchDog
                     _hudUnresponsive?.Start();
 
                 // Memory leak check
-                var ram = _hud.WorkingSet64 / 1024f / 1024f;
-                if (ram > HUD_MAX_RAM_ALLOWED_MB / 2f)
+                var hudWorkingSet = _hud.WorkingSet64 / 1024f / 1024f;
+                var poeWorkingSet = _game.WorkingSet64 / 1024f / 1024f;
+                if (hudWorkingSet > HUD_MAX_RAM_ALLOWED_MB / 2f)
                 {
                     Console.WriteLine(
-                        $"{DateTime.Now} ExileApi consumed {ram} MB. Memory leak ?");
+                        $"{DateTime.Now} ExileApi consumed {hudWorkingSet} MB. Memory leak ?");
                 }
-                if (ram > HUD_MAX_RAM_ALLOWED_MB)
+                else if (hudWorkingSet > HUD_MAX_RAM_ALLOWED_MB)
                 {
                     Console.WriteLine(
                         $"{DateTime.Now} Detected memory leak in ExileApi");
                     CloseExileApi();
                     Thread.Sleep(1000);
+                }
+                else if (_lastMemoryPrinted.Elapsed.TotalMinutes > 10 &&
+                         _hud?.Responding == true &&
+                         _game?.Responding == true)
+                {
+                    Console.WriteLine(
+                        $"{DateTime.Now} ExileApi consumed {hudWorkingSet} MB");
+                    Console.WriteLine(
+                        $"{DateTime.Now} POE consumed {poeWorkingSet} MB");
+                    _lastMemoryPrinted.Restart();
                 }
                 
                 // Frozen check
